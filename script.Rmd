@@ -1,0 +1,203 @@
+---
+title: "Bollywood"
+author: "Shikhar Parashar"
+date: "August 15, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+setwd('S://DATA Science//R//Project - Bollywood')
+packages <- c('rvest','ggplot2','gridExtra', 'TMDb', 'car', 'scatterplot3d')
+purrr::walk(packages, library, character.only = TRUE, warn.conflicts = FALSE)
+```
+
+## Scrapping IMDB for Data.
+
+URL for Scrapping: http://www.imdb.com/search/title?production_status=released&role=nm0474774&sort=user_rating,desc&title_type=feature
+
+
+```{r}
+
+api_key <- 'bbc9b502ac719e8e898f3b854489ccbc'
+
+Akshay_TMDb$results <- search_person(api_key, 'Akshay Kumar')
+
+person_tmdb(api_key,)
+  
+  
+
+
+fetch_data <- function(artist, count_of_records = 50){
+  url_bit1 <- 'http://www.imdb.com/search/title?count='
+  url_bit2 <- '&production_status=released&role='
+  url_bit3 <- '&title_type=feature&sort=num_votes,desc'
+  url <- paste(url_bit1, count_of_records, url_bit2, artist$code, url_bit3, sep='')
+  data <- read_html(url)
+  clean_data <- clean_data(artist, data)
+  return(clean_data)
+}
+
+clean_data <- function(artist, raw_data){
+  rank_data_html <- html_nodes(raw_data,'.text-primary')
+  title_data_html <- html_nodes(raw_data,'.lister-item-header a')
+  description_data_html <- html_nodes(raw_data,'.ratings-bar+ .text-muted')
+  runtime_data_html <- html_nodes(raw_data,'.text-muted .runtime')
+  genre_data_html <- html_nodes(raw_data,'.genre')
+  rating_data_html <- html_nodes(raw_data,'.ratings-imdb-rating strong')
+  actors_data_html <- html_nodes(raw_data,'.lister-item-content .ghost+ a')
+  directors_data_html <- html_nodes(raw_data,'.text-muted+ p a:nth-child(1)')
+  votes_data_html <- html_nodes(raw_data,'.sort-num_votes-visible span:nth-child(2)')
+#  gross_data_html <- html_nodes(raw_data,'.ghost~ .text-muted+ span')
+  
+  
+  rank_data <- as.numeric(html_text(rank_data_html))
+  title_data <- html_text(title_data_html)
+  description_data <- gsub("\n","",html_text(description_data_html))
+  runtime_data <- as.numeric(gsub(" min","",html_text(runtime_data_html)))
+  genre_data <- as.factor(gsub(",.*","",gsub(" ","",gsub("\n","",html_text(genre_data_html)))))
+  rating_data <- as.numeric(html_text(rating_data_html))
+  actors_data <- as.factor(html_text(actors_data_html))
+  directors_data <- as.factor(html_text(directors_data_html))
+  votes_data <- as.numeric(gsub(",","",html_text(votes_data_html)))
+#  gross_data <- as.numeric(substring(gsub("M","",html_text(gross_data_html)),2,6))
+  
+
+
+  total_records <- length(rank_data)
+  
+  
+  cat('Number of records available for Artist:',artist$name, "is:",
+      total_records, "\n")
+  
+  
+  
+  clean_df<-data.frame(Name = as.factor(artist$name), Rank = rank_data, Title = title_data, Description = description_data, Runtime = runtime_data, 
+                        Genre = genre_data, Rating = rating_data, Votes = votes_data, Director = directors_data, Actor = actors_data)
+
+  
+  
+  return(clean_df)
+}
+
+
+```
+
+## Main Program
+
+```{r}
+
+code <- as.character('nm0474774')
+name <- as.character('Akshay Kumar')
+Akshay <- data.frame(code, name, stringsAsFactors = FALSE)
+
+
+code <- as.character('nm0006795')
+name <- as.character('Salman Khan')
+Salman <- data.frame(code, name, stringsAsFactors = FALSE)
+
+
+code <- as.character('nm0451321')
+name <- as.character('Shahrukh Khan')
+Shahrukh <- data.frame(code, name, stringsAsFactors = FALSE)
+
+
+code <- as.character('nm0451148')
+name <- as.character('Aamir Khan')
+Aamir <- data.frame(code, name, stringsAsFactors = FALSE)
+
+
+code <- as.character('nm0004569')
+name <- as.character('Sanjay Dutt')
+Sanjay <- data.frame(code, name, stringsAsFactors = FALSE)
+
+code <- as.character('nm0222426')
+name <- as.character('Ajay Devgn')
+Ajay <- data.frame(code, name, stringsAsFactors = FALSE)
+
+code <- as.character('nm1633541')
+name <- as.character('Ranbir Kapoor')
+Ranbir <- data.frame(code, name, stringsAsFactors = FALSE)
+
+code <- as.character('nm0000093')
+name <- as.character('Brad Pitt')
+Brad <- data.frame(code, name, stringsAsFactors = FALSE)
+
+
+
+Akshay_data <- fetch_data(Akshay, 20)
+Salman_data <- fetch_data(Salman, 20)
+Shahrukh_data <- fetch_data(Shahrukh, 20)   
+Aamir_data <- fetch_data(Aamir, 20)
+Sanjay_data <- fetch_data(Sanjay, 20)
+Ajay_data <- fetch_data(Ajay, 20)
+Ranbir_data <- fetch_data(Ranbir, 20)
+Brad_data <- fetch_data(Brad, 20)
+
+```
+## What did we get?
+
+Scrapped Data - Visual Interpretation
+
+```{r}
+
+Akshay_Salman <- rbind(Akshay_data, Salman_data)
+
+All_data <- rbind(Akshay_data, Salman_data, Shahrukh_data, Aamir_data, Sanjay_data, Ajay_data, Ranbir_data)
+
+plot1 <- qplot(data = Akshay_Salman,Name,fill = Genre,bins = 20)
+plot2 <- qplot(data = All_six,Name,fill = Genre,bins = 30)
+grid.arrange(plot1, plot2, ncol=1)
+
+
+ggplot(All_data,aes(x=Genre,y=Rating))+
+  geom_point(aes(size=Votes,col=Name))
+
+
+
+
+barplot(temp$Total_Votes, col = temp$Name, legend = temp$Name)
+
+
+barplot(temp_rate$Total_Rating, col = temp_rate$Name, legend = temp_rate$Name)
+
+
+ggplot(All_data,aes(x=Name,y=sum(Votes)))+
+  geom_point(aes(size=Votes,col=Name))
+
+
+pie(temp$Total_Votes,labels = temp$Name)
+
+summary(All_six)
+
+scatterplot(Runtime ~ Votes | Name, data=All_data, 
+  	xlab="Votes", ylab="Runtime")
+
+
+temp <- data.frame(Name = unique(Akshay_data$Name),Total_Votes = sum(Akshay_data$Votes))
+temp <- rbind(temp, data.frame(Name = unique(Salman_data$Name),Total_Votes = sum(Salman_data$Votes)))
+temp <- rbind(temp, data.frame(Name = unique(Shahrukh_data$Name),Total_Votes = sum(Shahrukh_data$Votes)))
+temp <- rbind(temp, data.frame(Name = unique(Aamir_data$Name),Total_Votes = sum(Aamir_data$Votes)))
+temp <- rbind(temp, data.frame(Name = unique(Sanjay_data$Name),Total_Votes = sum(Sanjay_data$Votes)))
+temp <- rbind(temp, data.frame(Name = unique(Ajay_data$Name),Total_Votes = sum(Ajay_data$Votes)))
+temp <- rbind(temp, data.frame(Name = unique(Ranbir_data$Name),Total_Votes = sum(Ranbir_data$Votes)))
+
+
+temp_rate <- data.frame(Name = unique(Akshay_data$Name),Total_Rating = sum(Akshay_data$Rating)/nrow(Akshay_data))
+temp_rate <- rbind(temp_rate, data.frame(Name = unique(Salman_data$Name),Total_Rating = sum(Salman_data$Rating)/nrow(Salman_data)))
+temp_rate <- rbind(temp_rate, data.frame(Name = unique(Shahrukh_data$Name),Total_Rating = sum(Shahrukh_data$Rating)/nrow(Shahrukh_data)))
+temp_rate <- rbind(temp_rate, data.frame(Name = unique(Aamir_data$Name),Total_Rating = sum(Aamir_data$Rating)/nrow(Aamir_data)))
+temp_rate <- rbind(temp_rate, data.frame(Name = unique(Sanjay_data$Name),Total_Rating = sum(Sanjay_data$Rating)/nrow(Akshay_data)))
+temp_rate <- rbind(temp_rate, data.frame(Name = unique(Ajay_data$Name),Total_Rating = sum(Ajay_data$Rating)/nrow(Akshay_data)))
+temp_rate <- rbind(temp_rate, data.frame(Name = unique(Ranbir_data$Name),Total_Rating = sum(Ranbir_data$Rating)/nrow(Akshay_data)))
+
+
+
+
+scatterplot3d(All_data$Runtime, All_data$Votes, All_data$Rating)
+
+ggplot(All_six,aes(x=Runtime,y=Rating))+
+  geom_point(aes(size=Votes,col=Genre))
+
+```
